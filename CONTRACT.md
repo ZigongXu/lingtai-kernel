@@ -16,6 +16,7 @@ related_files:
   - src/lingtai/kernel/refresh_watcher/CONTRACT.md
   - src/lingtai/tools/bash/CONTRACT.md
   - src/lingtai/tools/notification/CONTRACT.md
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/tools/pad/CONTRACT.md
   - src/lingtai/tools/lingtai/CONTRACT.md
   - src/lingtai/tools/psyche/CONTRACT.md
