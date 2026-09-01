@@ -5,6 +5,8 @@ root_contract: CONTRACT.md
 related_files:
   - src/lingtai/tools/ANATOMY.md
   - src/lingtai/tools/registry.py
+  - src/lingtai/tools/channel_reply/CONTRACT.md
+  - src/lingtai/tools/channel_reply/__init__.py
   - src/lingtai/kernel/base_agent/tools.py
   - src/lingtai/kernel/tool_executor.py
   - src/lingtai/tools/web_search/CONTRACT.md
@@ -405,41 +407,34 @@ rather than dropping it, so it strips that key at its own Host boundary and
 threads it to the one action that needs it, instead of widening the shared
 envelope.
 
-**Current state (the paragraph above is migration history).** That family no
-longer exists, and neither do the `pad`/`lingtai`/`knowledge`/`skills` public
-roots that briefly succeeded it. The four durable domains are now taught by one
-read-only root, `psyche` (`pad | lingtai | knowledge | skills | manual`,
-`src/lingtai/tools/psyche/CONTRACT.md`, the equation
-`pad + lingtai + knowledge + skills = psyche`): every action returns that domain's
-manual and mutates nothing. Those four packages remain as private lifecycle
-owners — Pad/LingTai composers and the Skills/Knowledge catalogs plus the
-Knowledge legacy migration — and register no tool. Generic durable mutation
-belongs to `file.write`/`file.edit`, which never hot-load prompt state; the
-retired `pad.append`, `skills.info`, and `knowledge.info` actions have no
-aliases. The
-context lifecycle is `context` (`molt | summarize | rebuild | manual`,
-`src/lingtai/tools/context/CONTRACT.md`): `summarize` records only, while
-`rebuild` is the one active operation that first recomposes every canonical
-prompt source, then applies pending/new summaries, then requests provider
-replay; bare `{}` remains valid with zero pending summaries. Refresh and molt
-invoke that same internal reconstruction contract as passive scenarios. Name
-actions moved to `system`. There is no `psyche` root/module/alias and no public
-`system(action='summarize')`. `context` alone consumes `_tc_id`; its action
-named `summarize` remains unrelated to the root boolean control.
+**Current LTP-v2 inventory (authoritative; preceding ordinal prose is migration
+history, not current-set truth).** The executable and documented set is exactly
+16 families:
+
+<!-- LTP_V2_CURRENT_FAMILIES: web,mcp,plugin,file,vision,avatar,soul,shell,notification,system,daemon,email,task_card,channel_reply,context,psyche -->
+
+`web`, `mcp`, `plugin`, `file`, `vision`, `avatar`, `soul`, `shell`,
+`notification`, `system`, `daemon`, `email`, `task_card`, `channel_reply`,
+`context`, and `psyche`.
+
+The current `psyche` root is the read-only manual family (`pad | lingtai |
+knowledge | skills | manual`; see `src/lingtai/tools/psyche/CONTRACT.md`). The
+retired `pad`, `lingtai`, `knowledge`, and `skills` public roots are historical,
+not current migrated families; their packages remain private lifecycle/catalog
+owners and register no tool. Generic durable mutation belongs to
+`file.write`/`file.edit`. The separate `context` lifecycle family owns `molt |
+summarize | rebuild | manual`; its action named `summarize` is unrelated to the
+root boolean control, and `context` alone consumes `_tc_id`. Name actions moved
+to `system`, and there is no public `system(action='summarize')`.
 
 The legacy a-priori result-summarization flag under the literal key `summary`
 (`src/lingtai/kernel/tool_result_summary.py:172`) remains honored for every
-still-unmigrated caller; `src/lingtai/kernel/tool_result_summary.py` recognizes
-the canonical `summarize` spelling only when the calling tool is a migrated LTP
-v2 family (`_LTP_V2_MIGRATED_FAMILIES`, currently `web`, `mcp`, `knowledge`,
-`file`, `vision`, `avatar`, `soul`, `shell`, `skills`, `notification`, `system`,
-`daemon`, `email`, `pad`, `lingtai`, `context`, and `plugin`), so
-an unmigrated tool's own field literally named `summarize` is never
-reinterpreted as this control. A family adopting this envelope MUST join that
-allowlist in the same change, or the root `summarize` it advertises to the
-model would be silently ignored. Every other LingTai-owned family remains
-unmigrated and keeps its existing schema and settings surface unchanged by
-this file.
+still-unmigrated caller. That module recognizes canonical root `summarize` only
+for the exact current set above. A family adopting this envelope MUST join the
+executable set and both uniquely marked parent-document inventories in the same
+change, or drift tests fail and the root control would be silently ignored.
+Every other LingTai-owned family remains unmigrated and keeps its existing
+schema and settings surface unchanged by this file.
 
 `mcp` is the second migrated family: public tool name `mcp`, actions `info |
 manual`, both taking the canonical strict-empty `input`. The migration changed
@@ -583,8 +578,8 @@ evidence, chosen for a risk profile no earlier migration had: the irreversible
 molt plus the record/apply pair that rewrites what the provider actually sees.
 It covers the exact four-action inventory (`molt | summarize | rebuild |
 manual`), the record-only-versus-applying split that replaced the former
-`rebuild` boolean, the proof that no `psyche` root survives anywhere, the
-closed root on both wires with the `allOf` correlation intact, per-action input
+`rebuild` boolean, historical retirement of the former mutable `psyche` surface
+(the current read-only `psyche` manual family is separate), the closed root on both wires with the `allOf` correlation intact, per-action input
 isolation, envelope and cross-branch rejection before any file write or context
 shed, `_tc_id` isolation on the consume-rather-than-drop path, the molt
 journal gate refusing before any shed, a full successful molt lifecycle in a

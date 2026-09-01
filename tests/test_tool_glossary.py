@@ -433,11 +433,13 @@ _ALL_PACKAGES = sorted(
 # private domain packages while ``psyche`` — the public root named for
 # ``pad + lingtai + knowledge + skills = psyche`` — adds the nineteenth, and
 # the intrinsic ``task_card`` producer adds the twentieth. ``plugin``, the
-# Agent Plugins flagpost twin of ``mcp``, is the twenty-first.
-assert len(_ALL_PACKAGES) == 21, _ALL_PACKAGES
+# Agent Plugins flagpost twin of ``mcp``, is the twenty-first; the static,
+# normally closed ``channel_reply`` intrinsic is the twenty-second.
+assert len(_ALL_PACKAGES) == 22, _ALL_PACKAGES
 assert "psyche" in _ALL_PACKAGES
 assert "plugin" in _ALL_PACKAGES
 assert "task_card" in _ALL_PACKAGES
+assert "channel_reply" in _ALL_PACKAGES
 assert "substrate" not in _ALL_PACKAGES
 # The five pre-migration file packages were deleted into ``file``; their
 # glossaries must not come back.

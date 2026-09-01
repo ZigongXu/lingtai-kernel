@@ -4,6 +4,8 @@ related_files:
   - src/lingtai/intrinsic_skills/ANATOMY.md
   - src/lingtai/tools/BEHAVIORS.md
   - src/lingtai/tools/CONTRACT.md
+  - src/lingtai/tools/channel_reply/ANATOMY.md
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/tools/feishu/BEHAVIORS.md
   - src/lingtai/tools/psyche/ANATOMY.md
   - src/lingtai/tools/plugin/ANATOMY.md
@@ -76,6 +78,14 @@ capability names and lazy adapters.
 - `CONTRACT.md` — the LingTai Tool Protocol (LTP): the future canonical
   model-facing tool call contract, the two-level family/action settings
   addressing and ownership rules, and the explicit per-tool migration boundary.
+- `channel_reply/` — mandatory static, normally unauthorized reply intrinsic.
+  Active target-file composition for an ordinary Agent is macOS only;
+  unsupported platforms keep a reason-bearing local closed Port and no route
+  marker. An owner capsule enables only tuple-safe local queue/receipt transport.
+  The Core Port accepts
+  opaque grant, request id, timestamp, bounded plain text, and proof; owner
+  adapters derive concrete destinations from grant state
+  (`src/lingtai/tools/channel_reply/ANATOMY.md`).
 - `registry.py` — intrinsic mapping, public `BUILTIN_TOOLS`, input aliases,
   defaults, normalization, setup, and check-caps metadata
   (`src/lingtai/tools/registry.py:39-344`).
@@ -101,6 +111,7 @@ capability names and lazy adapters.
   ninth, `notification` its tenth, `system` its eleventh, `daemon` its
   twelfth, `context` its thirteenth, and `plugin` its fourteenth
   (`src/lingtai/tools/tool_family/ANATOMY.md`).
+  <!-- LTP_V2_CURRENT_FAMILIES: web,mcp,plugin,file,vision,avatar,soul,shell,notification,system,daemon,email,task_card,channel_reply,context,psyche -->
 - `plugin/` — the `plugin` capability: the per-agent Agent Plugins
   (agent-plugins.org, v1.0.0) catalog and registration snapshot, structural twin
   of `mcp` with the same `info`/`manual` children and the same tool/service split
