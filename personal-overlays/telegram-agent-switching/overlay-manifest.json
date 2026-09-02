@@ -1,0 +1,144 @@
+{
+  "artifacts": [
+    {
+      "bytes": 980768,
+      "path": "artifacts/telegram-agent-switching.patch",
+      "sha256": "44a88ef07d2a507e29241f401cf2f9db1e4b0ae1502ae7627e670da43d1c6d3e"
+    },
+    {
+      "bytes": 192013,
+      "path": "artifacts/telegram-agent-switching.bundle",
+      "sha256": "01a32e7aa707cf232804ff1fc099ef6a86235af1a381328d3b475aed9418996c"
+    },
+    {
+      "bytes": 1842,
+      "path": "artifacts/touched-files.txt",
+      "sha256": "d13599fc7d64050b37777fd7e107cbd340fb95b3e8feb31e51fa200804897c74"
+    },
+    {
+      "bytes": 66469,
+      "path": "artifacts/build-wheelhouse/packaging-25.0-py3-none-any.whl",
+      "sha256": "29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"
+    },
+    {
+      "bytes": 1006223,
+      "path": "artifacts/build-wheelhouse/setuptools-82.0.1-py3-none-any.whl",
+      "sha256": "a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb"
+    },
+    {
+      "bytes": 72494,
+      "path": "artifacts/build-wheelhouse/wheel-0.45.1-py3-none-any.whl",
+      "sha256": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248"
+    }
+  ],
+  "build_environment": {
+    "mode": "isolated-offline-wheelhouse",
+    "path": "artifacts/build-wheelhouse",
+    "pins": [
+      "setuptools==82.0.1",
+      "wheel==0.45.1",
+      "packaging==25.0"
+    ],
+    "policy": "Preserve PEP 517 build isolation while setting PIP_NO_INDEX=1 and PIP_FIND_LINKS to the integrity-checked packaged wheelhouse. Never install the produced project wheels into a shared Runtime."
+  },
+  "bundle": {
+    "path": "artifacts/telegram-agent-switching.bundle",
+    "ref": "refs/heads/feat/telegram-agent-switching-v1-pr"
+  },
+  "closed_boundaries": [
+    "No automatic install into shared Runtime.",
+    "No Agent refresh/restart.",
+    "No Bot/config/secret mutation.",
+    "No merge/release/deploy authority.",
+    "No claim of Linux/Windows/current-main maintainer acceptance."
+  ],
+  "compatibility_tests": {
+    "baseline_compare": {
+      "name": "upgrade-governance-delta",
+      "paths": [
+        "tests/test_architecture_documents.py",
+        "tests/test_anatomy_drift_checker.py",
+        "tests/test_docs_governance.py",
+        "tests/test_notification_cap_doc_parity.py"
+      ],
+      "policy": "The overlay may retain or reduce target-baseline failures but must introduce no new failed/error node IDs."
+    },
+    "must_pass": [
+      {
+        "expected_passed": 434,
+        "name": "focused-434",
+        "paths": [
+          "tests/test_agent.py",
+          "tests/test_channel_reply.py",
+          "tests/test_mcp_inbox.py",
+          "tests/test_telegram_agent_switching.py",
+          "tests/test_telegram_agent_switching_ingress.py",
+          "tests/test_telegram_secret_redaction.py"
+        ]
+      },
+      {
+        "expected_passed": 8,
+        "name": "contract-docs-8",
+        "paths": [
+          "tests/test_telegram_agent_switching_contract_docs.py"
+        ]
+      },
+      {
+        "expected_passed": 180,
+        "name": "tool-glossary-180",
+        "paths": [
+          "tests/test_tool_glossary.py"
+        ]
+      },
+      {
+        "expected_passed": 21,
+        "name": "package-data-21",
+        "paths": [
+          "tests/test_tools_package_data.py"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-09-01T00:39:00-07:00",
+  "feature": {
+    "automatic_platform_gate": "Darwin only",
+    "branch": "feat/telegram-agent-switching-v1-pr",
+    "commit": "22567449cd799411b4d3b2f423b107c7508dfc1b",
+    "default_activation": "off",
+    "package_version": "1.0.3",
+    "parent": "a10f0e4ad8dec25aa3a3a7d4cd4e855c00b73f2e",
+    "precommit_aggregate_sha256": "343ce48cc5f1c6827ce6a447f6660a3599eb3362efc90c8b334524127836f8b9",
+    "stable_patch_id": "5f77cf7b6c6e8382f90e454dbab5e54cc3ee4d15",
+    "touched_paths": 48,
+    "tree": "cb4d01525787a476fc78002f19857761b683a854"
+  },
+  "known_risks": [
+    "Cooperative same-UID model, not malicious same-UID containment.",
+    "Darwin-only real E2E evidence.",
+    "Residual at-most-once loss window after durable claim and before observed send.",
+    "Public generic channel_reply and descendant-discovery product boundaries remain HOLD."
+  ],
+  "patch": {
+    "format": "git format-patch --binary --full-index",
+    "path": "artifacts/telegram-agent-switching.patch"
+  },
+  "purpose": "Fixed, repeatable local replay of the default-off Telegram Agent-switching experiment across upstream upgrades.",
+  "recorded_current_main_evidence": {
+    "focused": "434 passed / 0 failed",
+    "nonpackage_governance": "267 passed plus four exact-base inherited failures reproduced identically",
+    "static": "diff-check, AST, regular-file, newline, conflict-marker, private-path/key, untracked and ignored-residue clean",
+    "wheel_sdist_package_data": "21 passed / 0 failed"
+  },
+  "schema": "lingtai.telegram-agent-switching-overlay/v1",
+  "upgrade_policy": {
+    "conflict": "Stop. Adapt only in a new version-specific commit and update this manifest with new target SHA, new commit/tree/patch IDs, tests, wheels and rollback receipt.",
+    "default_mode": "check-only disposable clone",
+    "exact_parent": "Replay must reproduce the authoritative feature tree exactly.",
+    "later_upstream": "Three-way replay must apply cleanly; all must-pass groups and the baseline-delta governance gate must pass before a wheel is considered usable.",
+    "shallow_clone": "Fetch enough upstream history to contain the prerequisite parent before importing the bundle."
+  },
+  "upstream": {
+    "repository": "https://github.com/Lingtai-AI/lingtai-kernel",
+    "tested_main": "a10f0e4ad8dec25aa3a3a7d4cd4e855c00b73f2e"
+  }
+}

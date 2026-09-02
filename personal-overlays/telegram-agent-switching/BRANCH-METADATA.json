@@ -1,0 +1,14 @@
+{
+  "schema": "lingtai.personal-overlay-branch/v1",
+  "upstream_repository": "https://github.com/Lingtai-AI/lingtai-kernel",
+  "fork_repository": "https://github.com/ZigongXu/lingtai-kernel",
+  "maintenance_branch": "personal/telegram-agent-switching-overlay",
+  "first_versioned_branch": "personal/telegram-agent-switching-v1-2026-09-01",
+  "tested_upstream_parent": "a10f0e4ad8dec25aa3a3a7d4cd4e855c00b73f2e",
+  "accepted_feature_commit": "22567449cd799411b4d3b2f423b107c7508dfc1b",
+  "accepted_feature_tree": "cb4d01525787a476fc78002f19857761b683a854",
+  "default_activation": "off",
+  "automatic_platform_gate": "Darwin only",
+  "pushes_automatically": false,
+  "installs_automatically": false
+}
