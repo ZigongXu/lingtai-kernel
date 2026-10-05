@@ -44,6 +44,7 @@ __all__ = [
     "OfficialToolNameCollisionError",
     "HostPortError",
     "WorkdirPort",
+    "ChannelReplySubmitHostPort",
     "PromptSectionPort",
     "ContextRuntimePort",
     "AvatarParentPort",
@@ -123,6 +124,7 @@ def _settings_input_schema() -> dict[str, Any]:
 #: name checks pass. A declaration that could mount could self-register.
 GRANTABLE_HOST_PORTS: tuple[str, ...] = (
     "workdir",
+    "channel_reply_submit",
     "prompt_section",
     "avatar_parent",
     "context_runtime",
@@ -153,8 +155,8 @@ GRANTABLE_HOST_PORTS: tuple[str, ...] = (
 #: discovery mechanism, and it holds names only — never a module path, an
 #: import, or any knowledge of what the family does.
 OFFICIAL_TOOL_PLUGIN_NAMES: tuple[str, ...] = (
-    "mcp", "avatar", "context", "daemon", "email", "plugin", "psyche",
-    "notification", "shell", "system", "task_card", "vision", "web",
+    "mcp", "avatar", "channel_reply", "context", "daemon", "email", "plugin",
+    "psyche", "notification", "shell", "system", "task_card", "vision", "web",
 )
 
 
@@ -227,6 +229,13 @@ class WorkdirPort(Protocol):
     @property
     def path(self) -> Path:
         """The agent working directory."""
+
+
+class ChannelReplySubmitHostPort(Protocol):
+    """Submit one validated Core request without exposing Agent or channel authority."""
+
+    def submit_channel_reply(self, request: Any) -> Any:
+        """Return the Core receipt for one grant-bound target request."""
 
 
 class PsycheSettingsSnapshotPort(Protocol):

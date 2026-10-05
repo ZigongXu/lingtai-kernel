@@ -1,5 +1,7 @@
 ---
 related_files:
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/ANATOMY.md
+  - src/lingtai/tools/channel_reply/ANATOMY.md
   - AGENTS.md
   - BEHAVIORS.md
   - CLAUDE.md

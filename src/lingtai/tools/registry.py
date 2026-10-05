@@ -109,6 +109,9 @@ BUILTIN_TOOLS: dict[str, str] = {
     "avatar": "lingtai.tools.avatar",
     "daemon": "lingtai.tools.daemon",
     "mcp": "lingtai.tools.mcp",
+    # Static, normally closed reply surface. Its official declaration receives
+    # only the narrow Core submit port and cannot discover channel authority.
+    "channel_reply": "lingtai.tools.channel_reply",
     # Notification is always-on like the former intrinsic, but now mounts only
     # through its declared official host-plugin route.
     "notification": "lingtai.tools.notification",
@@ -153,6 +156,7 @@ CORE_DEFAULTS: dict[str, dict] = {
     "avatar": {},
     "daemon": {},
     "mcp": {},
+    "channel_reply": {},
     # Notification keeps its former mandatory availability, now through the
     # declared official-plugin registrar rather than direct intrinsic wiring.
     "notification": {},
@@ -188,7 +192,7 @@ def apply_core_defaults(
     # and refresh resolve capability maps through this helper; otherwise either
     # ``disable=["notification"]`` or ``{"notification": null}`` can silently
     # remove the declaration before the official registrar runs.
-    always_on_official = {"notification"}
+    always_on_official = {"channel_reply", "notification"}
     if capabilities:
         # Normalize here too because callers loading init/preset data may call
         # this helper directly without first passing through Agent.

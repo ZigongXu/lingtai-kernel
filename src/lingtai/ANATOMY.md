@@ -1,5 +1,7 @@
 ---
 related_files:
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/ANATOMY.md
+  - src/lingtai/tools/channel_reply/ANATOMY.md
   - ANATOMY.md
   - src/lingtai/BEHAVIORS.md
   - src/lingtai/__init__.py
@@ -252,3 +254,7 @@ marked refresh's successful `agent.start`; the shared successful post-molt
 publisher calls it for agent/system molts. The threshold is resolved by
 `kernel/config.py:memory_length_warning_chars`; System settings provides SHOW.
 There is no heartbeat or prompt reconstruction producer.
+
+## Channel reply platform scope
+
+File-backed `channel_reply` automatic composition is macOS only; the official family remains visible but closed elsewhere.

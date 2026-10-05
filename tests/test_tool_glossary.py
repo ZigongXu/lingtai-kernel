@@ -435,12 +435,14 @@ _ALL_PACKAGES = sorted(
 # the intrinsic ``task_card`` producer adds the twentieth. ``plugin``, the
 # Agent Plugins flagpost twin of ``mcp``, was the twenty-first; the removed
 # public ``file`` family took its glossary with it, leaving twenty, and the
-# removed Soul subsystem took its glossary with it, leaving nineteen.
-assert len(_ALL_PACKAGES) == 19, _ALL_PACKAGES
+# removed Soul subsystem took its glossary with it, leaving nineteen; the declared
+# `channel_reply` family adds the twentieth.
+assert len(_ALL_PACKAGES) == 20, _ALL_PACKAGES
 assert "soul" not in _ALL_PACKAGES
 assert "psyche" in _ALL_PACKAGES
 assert "plugin" in _ALL_PACKAGES
 assert "task_card" in _ALL_PACKAGES
+assert "channel_reply" in _ALL_PACKAGES
 assert "substrate" not in _ALL_PACKAGES
 # The public ``file`` family is gone (durable filesystem work goes through
 # ``shell``); neither it nor the five pre-migration file packages it had

@@ -1,5 +1,9 @@
 ---
 related_files:
+  - src/lingtai/tools/channel_reply/__init__.py
+  - src/lingtai/tools/channel_reply/BEHAVIORS.md
+  - src/lingtai/tools/channel_reply/ANATOMY.md
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - ANATOMY.md
   - src/lingtai/intrinsic_skills/ANATOMY.md
   - src/lingtai/tools/BEHAVIORS.md
@@ -73,7 +77,7 @@ maintenance: |
   over a declaration, and the Agent Plugins entry is the excluded external
   standard kept only as the registration-versus-activation precedent. Those
   navigation entries do not themselves prove a declaration: `mcp` is the base reference,
-  while the separately landed `avatar`, Context, Daemon, Email, Plugin,
+  while the separately landed `avatar`, Channel Reply, Context, Daemon, Email, Plugin,
   Psyche, Notification, Shell, System, Task Card, Vision, and Web vertical
   slices are actual declared evidence; the former later-family target register
   is empty. The public `file` family was removed outright (durable filesystem
@@ -101,14 +105,18 @@ capability names and lazy adapters.
 - `BEHAVIORS.md` — the paired LABT file: LP001 guards the closed LTP envelope,
   LP002 guards the Tool-to-MCP Plugin Contract's status, its two-class governed
   surface, its single selected wrapper form, the document graph, and the
-  current inventory: thirteen static official families (`mcp`, `avatar`,
-  `context`, `daemon`, `email`, `plugin`, `psyche`, `notification`,
-  `shell`, `system`, `task_card`, `vision`, `web`), nineteen grantable
+  current inventory: fourteen static official families (`mcp`, `avatar`,
+  `channel_reply`, `context`, `daemon`, `email`, `plugin`, `psyche`, `notification`,
+  `shell`, `system`, `task_card`, `vision`, `web`), twenty grantable
   host names,
   and an empty former later-family target register.
 - `registry.py` — intrinsic mapping, public `BUILTIN_TOOLS`, input aliases,
   defaults, normalization, setup, and check-caps metadata
   (`src/lingtai/tools/registry.py:39-344`).
+- `channel_reply/` — always-visible official declared family with strict
+  `submit | manual`, bound only to `workdir` and the narrow Core
+  `channel_reply_submit` Port; it is normally closed and cannot receive an Agent
+  or any channel destination/credential authority (`channel_reply/ANATOMY.md`).
 - `web_search/` — public `web` composition owner for search, browse, settings,
   and manual, declared as the fourteenth official host-plugin slice against
   `workdir`/`web_runtime`/`provider_identity`
@@ -396,3 +404,7 @@ registry, schema, prompt, check-caps, manual, or catalog entries under those old
 public names. The removed `file` family is not among them: its package,
 contract, glossaries, manual, and capability names were deleted outright, so
 there is no legacy directory, alias, or shim left for that surface.
+
+## Channel reply platform scope
+
+File-backed `channel_reply` automatic composition is macOS only; the official family remains visible but closed elsewhere.

@@ -1,8 +1,9 @@
 ---
 name: declared-host-tool-plugin
-contract_version: 7
+contract_version: 8
 root_contract: CONTRACT.md
 related_files:
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/kernel/tool_plugin/ANATOMY.md
   - src/lingtai/kernel/tool_plugin/BEHAVIORS.md
   - src/lingtai/kernel/tool_plugin/__init__.py
@@ -108,7 +109,7 @@ It owns exactly four things:
 
 1. `ToolPluginDeclaration` — the static declaration shape and its
    construction-time validation.
-2. The kernel host Ports (`WorkdirPort`, `PromptSectionPort`,
+2. The kernel host Ports (`WorkdirPort`, `ChannelReplySubmitHostPort`, `PromptSectionPort`,
    `AvatarParentPort`, `ContextRuntimePort`, `DaemonRuntimePort`,
    read-only `PluginCatalogPort`, Shell's `NotificationPort` and
    `ConfigurationPort`, Task Card's `ShutdownPort`, `TaskCardLifecyclePort`,
@@ -127,6 +128,11 @@ It owns exactly four things:
    list of official plugin names.
 4. `register_official_tool_plugins` — the fail-fast registrar and its ordering
    promise.
+
+**contract_version 8** adds the reserved `channel_reply` family and its one
+narrow `channel_reply_submit` host grant. The family receives neither Agent nor
+channel adapter/destination authority; unsupported automatic composition supplies
+a side-effect-free closed Core Port while the declared schema remains visible.
 
 **contract_version 6** is a breaking Port-contract change: the `file_io`
 grant name, `FileIOPort`, and the `FileGrepMatch`/`FileTraversalStats` result
@@ -173,7 +179,7 @@ Coding agents and LingTai agents MUST observe the following.
   mounting are the registrar's steps, in that order, and `tool_mount` is never
   grantable to a declaration.
 - **Do not claim blanket conformance.** A family conforms only once its own
-  vertical slice lands with its own evidence. Today `mcp`, `avatar`, `context`,
+  vertical slice lands with its own evidence. Today `mcp`, `avatar`, `channel_reply`, `context`,
   `daemon`, `email`, `plugin`, `psyche`, `notification`, `shell`,
   `system`, `task_card`, `vision`, and `web` are declared, in that official
   order; the former later-family target register is now empty. Task Card is a
@@ -228,6 +234,7 @@ capability.
 | Port | Operation | Promise |
 |---|---|---|
 | `WorkdirPort` | `path -> Path` | The agent working directory, read through on every access so a holder never renders a stale directory after a refresh. Grants no read, write, listing, or lease operation. |
+| `ChannelReplySubmitHostPort` | `submit_channel_reply(request) -> receipt` | The narrow Core-owned target submit boundary. It exposes no Agent, channel adapter, account, destination, credential, or mount capability; unsupported automatic composition grants a deterministic side-effect-free closed implementation. |
 | `PromptSectionPort` | `write_protected_section(body) -> None` | Replace **this plugin's own** protected system-prompt section. There is no section argument and no `protected` flag: the granted port is bound to the declaring plugin's name, so a plugin can neither address another's section nor write an unprotected one. |
 | `AvatarParentPort` | `parent_name`, `venv_path` | Avatar-only parent context: the identity placed in a newborn prompt and optional runtime location inherited into its init. It grants no mutable admin/configuration surface or Agent reference. Avatar owns no rules-distribution action, so this port no longer carries an authorization-bit method for one (**contract_version 4**, breaking: `has_rule_privilege()` removed). |
 | `ContextRuntimePort` | `molt(args)`, `summarize(args)`, `rebuild(args)` | Context-only lifecycle-operation boundary. It preserves the live molt, record-only summary, and reconstruction/replay engines without granting Context the Agent or unrelated private state. |
@@ -249,14 +256,14 @@ capability.
 | `ToolMountPort` | `mount_tool(transaction) -> None` | Publish the registrar-created one-use transaction carrying one declaration and its exact `BoundToolPlugin` on the live model-facing tool surface. **Host-only** — it is absent from `GRANTABLE_HOST_PORTS` and is held solely by the registrar. |
 
 `GRANTABLE_HOST_PORTS` is the closed set a declaration may name. It contains
-exactly twenty grantable names: `workdir`, `prompt_section`, `avatar_parent`,
+exactly twenty grantable names: `workdir`, `channel_reply_submit`, `prompt_section`, `avatar_parent`,
 `context_runtime`,
 `daemon_runtime`, `email_runtime`, `plugin_catalog`,
 `psyche_settings`, `notification_state`, `notifications`, `configuration`,
 `system_runtime`, `identity`, `shutdown`, `task_card_lifecycle`,
 `task_card_notifications`, `active_provider`, `web_runtime`, and
 `provider_identity` (`file_io` is no longer grantable): `mcp`
-consumes the first two as its base reference; Avatar, Context, and Daemon
+consumes `workdir`/`prompt_section` as its base reference; Channel Reply consumes `workdir`/`channel_reply_submit`; Avatar, Context, and Daemon
 consume their respective narrow runtime ports; Email consumes `workdir` plus its
 Email-owned `email_runtime`; and Plugin consumes `workdir`, its own
 `prompt_section`, and the

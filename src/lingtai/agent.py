@@ -10,6 +10,7 @@ Capabilities are declared at construction and sealed before start().
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -208,6 +209,25 @@ def _schema_declares_reasoning_param(schema: Any) -> bool:
     return "reasoning" in properties or "_reasoning" in properties
 
 
+
+def _release_wrapper_workdir_lease_on_init_failure(initializer):
+    """Never retain BaseAgent's workdir lease when wrapper composition fails."""
+
+    @functools.wraps(initializer)
+    def guarded(self, *args, **kwargs):
+        try:
+            return initializer(self, *args, **kwargs)
+        except BaseException:
+            lease = getattr(self, "_workdir_lease", None)
+            if lease is not None:
+                with contextlib.suppress(Exception):
+                    lease.release()
+            if hasattr(self, "_workdir_lease_acquired"):
+                self._workdir_lease_acquired = False
+            raise
+
+    return guarded
+
 class Agent(BaseAgent):
     """BaseAgent with composable capabilities.
 
@@ -252,6 +272,7 @@ class Agent(BaseAgent):
 
         return resolve_runtime_policy(self._working_dir)
 
+    @_release_wrapper_workdir_lease_on_init_failure
     def __init__(
         self,
         *args: Any,
@@ -306,6 +327,10 @@ class Agent(BaseAgent):
         # injecting a subset).
         from lingtai.tools.registry import INTRINSICS
         kwargs.setdefault("intrinsics", INTRINSICS)
+        # An explicit value, including None, is an honest host composition
+        # decision. Only omission asks this wrapper to select the production
+        # target-local channel_reply port.
+        compose_channel_reply_submitter = "channel_reply_submit_port" not in kwargs
 
         # The outer wrapper is a composition root for direct ``lingtai.Agent``
         # callers.  Explicit ``event_journal=None`` remains an honest opt-out.
@@ -323,6 +348,7 @@ class Agent(BaseAgent):
             )
             kwargs["event_journal"] = owned_event_journal
 
+        base_agent_initialized = False
         try:
             # BaseAgent requires an explicit workdir lease. As the composition
             # root for direct ``lingtai.Agent`` callers, select and construct the
@@ -390,6 +416,36 @@ class Agent(BaseAgent):
             # Store combo name before super().__init__ (not forwarded to BaseAgent)
             self._combo_name = combo_name
             super().__init__(*args, **kwargs)
+            base_agent_initialized = True
+            if compose_channel_reply_submitter:
+                from lingtai.adapters.channel_reply_state_lock import (
+                    UnsupportedChannelReplyPlatform,
+                    select_channel_reply_state_lock,
+                )
+                from lingtai.kernel.channel_reply import (
+                    ChannelReplyTargetFileSubmitPort,
+                    ClosedChannelReplySubmitPort,
+                )
+
+                try:
+                    mutation_lock = select_channel_reply_state_lock()
+                except UnsupportedChannelReplyPlatform as exc:
+                    # The public family remains statically visible, but the
+                    # target-local route is functionally closed and produces no
+                    # file, provider, or channel side effect.
+                    self._channel_reply_submit_port = ClosedChannelReplySubmitPort(
+                        message=str(exc)
+                    )
+                else:
+                    self._channel_reply_submit_port = ChannelReplyTargetFileSubmitPort(
+                        self._working_dir,
+                        mutation_lock=mutation_lock,
+                    )
+
+            import threading
+
+            self._channel_reply_notifier_stop = threading.Event()
+            self._channel_reply_notifier_thread: threading.Thread | None = None
             # One canonical full-context reconstruction hook serves both passive
             # molt and the public active context.rebuild operation. Intrinsic
             # Pad/LingTai boots do initial composition only; they never register
@@ -400,6 +456,23 @@ class Agent(BaseAgent):
             # Core load_preset or constructing a migration workspace adapter.
             self._preset_loader = load_preset
         except Exception:
+            # After Core construction succeeds, the wrapper owns live identity,
+            # heartbeat/runtime resources, the journal, and the workdir lease.
+            # A later adapter/manifest failure must use normal teardown before
+            # preserving the original exception; journal-only cleanup wedges an
+            # immediate reconstruction on the same workdir.
+            if base_agent_initialized:
+                lease = getattr(self, "_workdir_lease", None)
+                with contextlib.suppress(Exception):
+                    self.stop()
+                # Teardown may itself encounter the same failing wrapper hook
+                # (for example a virtual manifest rebuild) and may clear its
+                # attributes first. Release the preserved idempotent adapter,
+                # independent of wrapper bookkeeping.
+                if lease is not None:
+                    with contextlib.suppress(Exception):
+                        lease.release()
+                self._workdir_lease_acquired = False
             if owned_event_journal is not None:
                 with contextlib.suppress(Exception):
                     owned_event_journal.close()
@@ -838,6 +911,18 @@ class Agent(BaseAgent):
         carries anything outside ``_LLM_PUBLIC_KEYS``.
         """
         data = super()._build_manifest()
+        submitter = getattr(self, "_channel_reply_submit_port", None)
+        from lingtai.kernel.channel_reply import ClosedChannelReplySubmitPort
+
+        if (
+            callable(getattr(submitter, "submit_channel_reply", None))
+            and not isinstance(submitter, ClosedChannelReplySubmitPort)
+        ):
+            from lingtai.kernel.channel_reply import channel_reply_capability_marker
+
+            data.setdefault("route_capabilities", {})["channel_reply"] = (
+                channel_reply_capability_marker()
+            )
         caps = getattr(self, "_capabilities", None)
         if caps:
             # Re-apply the recursive redaction at the serialization boundary.
@@ -1534,8 +1619,115 @@ class Agent(BaseAgent):
         self._log("cpr_launch_unconfirmed", target=str(target), pid=proc.pid, log=str(log_path))
         return True
 
+    def _channel_reply_notifier_is_functional(self) -> bool:
+        port = getattr(self, "_channel_reply_submit_port", None)
+        return bool(
+            callable(getattr(port, "list_unnotified_terminal_receipts", None))
+            and callable(getattr(port, "mark_terminal_receipt_notified", None))
+            and callable(getattr(port, "notification_idempotency_key", None))
+        )
+
+    def _poll_channel_reply_notifications_once(
+        self,
+        *,
+        max_inspections: int = 16,
+    ) -> int:
+        """Project validated Core terminal truth through the existing Store."""
+        if not self._channel_reply_notifier_is_functional():
+            return 0
+        port = self._channel_reply_submit_port
+        page = port.list_unnotified_terminal_receipts(
+            max_inspections=max_inspections
+        )
+        published = 0
+        for receipt in page.receipts:
+            idempotency_key = port.notification_idempotency_key(receipt)
+            fields = {
+                "status": receipt.status,
+                "request_id": receipt.request_id,
+                "message": receipt.message,
+            }
+            if receipt.public_ref is not None:
+                fields["public_ref"] = receipt.public_ref
+            body = (
+                f"channel_reply {receipt.status} for request "
+                f"{receipt.request_id}: {receipt.message}"
+            )
+            if receipt.public_ref is not None:
+                body += f" ({receipt.public_ref})"
+            try:
+                # A normal compare/update return means the stable Store key is
+                # applied or already present. Commit Core's notified marker only
+                # after that point; a crash in the cross-store gap may duplicate
+                # the best-effort projection but can never remint/re-send.
+                self._enqueue_system_notification(
+                    source="channel_reply",
+                    ref_id=idempotency_key,
+                    body=body,
+                    idempotency_key=idempotency_key,
+                    skip_if_idempotency_key_exists=True,
+                    extra=fields,
+                )
+                port.mark_terminal_receipt_notified(receipt)
+                published += 1
+            except Exception as exc:
+                self._log(
+                    "channel_reply_notification_failed",
+                    error_type=type(exc).__name__,
+                )
+        return published
+
+    def _channel_reply_notifier_loop(self) -> None:
+        stop = self._channel_reply_notifier_stop
+        while not stop.is_set():
+            try:
+                self._poll_channel_reply_notifications_once()
+            except Exception as exc:
+                self._log(
+                    "channel_reply_notification_cycle_failed",
+                    error_type=type(exc).__name__,
+                )
+            stop.wait(0.5)
+
+    def _start_channel_reply_notifier(self) -> None:
+        if not self._channel_reply_notifier_is_functional():
+            return
+        existing = getattr(self, "_channel_reply_notifier_thread", None)
+        if existing is not None and existing.is_alive():
+            return
+        import threading
+
+        self._channel_reply_notifier_stop.clear()
+        thread = threading.Thread(
+            target=self._channel_reply_notifier_loop,
+            daemon=True,
+            name=f"channel-reply-notifier-{self.agent_name or self._working_dir.name}",
+        )
+        self._channel_reply_notifier_thread = thread
+        try:
+            thread.start()
+        except Exception:
+            self._channel_reply_notifier_thread = None
+            raise
+
+    def _stop_channel_reply_notifier(self) -> None:
+        stop = getattr(self, "_channel_reply_notifier_stop", None)
+        thread = getattr(self, "_channel_reply_notifier_thread", None)
+        if stop is not None:
+            stop.set()
+        if thread is None:
+            return
+        if thread.ident is None:
+            self._channel_reply_notifier_thread = None
+            return
+        thread.join(timeout=2.0)
+        if thread.is_alive():
+            raise RuntimeError("channel_reply notifier did not stop")
+        self._channel_reply_notifier_thread = None
+
     def start(self) -> None:
         super().start()
+        self._start_channel_reply_notifier()
         # LICC poller: watch .mcp_inbox/ for events from out-of-process MCPs.
         from .services.mcp_inbox import MCPInboxPoller
         self._mcp_inbox_poller = MCPInboxPoller(self)
@@ -1945,6 +2137,10 @@ class Agent(BaseAgent):
 
     def _close_agent_owned_services_after_quiescence(self) -> None:
         """Close LICC/MCP transports only after execution can no longer use them."""
+
+        # Stop target terminal projection after execution quiescence and before
+        # releasing Agent-owned services or the workdir lease.
+        self._stop_channel_reply_notifier()
 
         # Stop LICC poller before closing MCP clients so any in-flight events
         # finish dispatching before subprocess teardown.

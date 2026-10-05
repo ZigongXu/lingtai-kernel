@@ -1,5 +1,8 @@
 ---
 related_files:
+  - src/lingtai/tools/channel_reply/CONTRACT.md
+  - src/lingtai/adapters/posix/channel_reply_state_lock.py
+  - src/lingtai/adapters/channel_reply_state_lock.py
   - src/lingtai/ANATOMY.md
   - src/lingtai/kernel/event_journal/ANATOMY.md
   - src/lingtai/kernel/event_journal/CONTRACT.md

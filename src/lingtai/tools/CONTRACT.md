@@ -1,8 +1,9 @@
 ---
 name: lingtai-tool-protocol
-contract_version: 2
+contract_version: 3
 root_contract: CONTRACT.md
 related_files:
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/tools/ANATOMY.md
   - src/lingtai/kernel/tool_plugin/CONTRACT.md
   - src/lingtai/tools/bash/CONTRACT.md
@@ -64,9 +65,9 @@ maintenance: |
   route layered over a declaration, not the required form of every official
   tool; changing either choice is a normative change, so move
   `src/lingtai/mcp_servers/_plugin.py`, `telegram/plugin.py`, and
-  `src/lingtai/mcp_catalog.json` in related_files with it. `mcp`, `avatar`,
+  `src/lingtai/mcp_catalog.json` in related_files with it. `mcp`, `avatar`, `channel_reply`,
   `context`, `daemon`, `email`, `plugin`, `psyche`, `notification`,
-  `shell`, `system`, `task_card`, `vision`, and `web` are the thirteen
+  `shell`, `system`, `task_card`, `vision`, and `web` are the fourteen
   static declared families today, in that official order; do not widen that claim
   without another family's evidence. The former `file` family was removed
   outright (no filesystem family exists; durable filesystem changes go through
@@ -292,13 +293,13 @@ Guarded by: [LP002](BEHAVIORS.md#behavior-lp002)
 
 **Status.** This section fixes the declaration, activation, dispatch, manual,
 host, identifier, and migration vocabulary that every official model-facing tool
-family shares. The accepted declared evidence is exactly the thirteen static
-official families `mcp`, `avatar`, `context`, `daemon`, `email`,
+family shares. The accepted declared evidence is exactly the fourteen static
+official families `mcp`, `avatar`, `channel_reply`, `context`, `daemon`, `email`,
 `plugin`, `psyche`, `notification`, `shell`, `system`, `task_card`,
 `vision`, and `web`, in that order. `mcp` is the base reference; the remaining
-twelve are accepted vertical slices with their narrow earned ports. The
-kernel's closed `GRANTABLE_HOST_PORTS` inventory has nineteen grantable names:
-`workdir`, `prompt_section`, `avatar_parent`, `context_runtime`,
+thirteen are accepted vertical slices with their narrow earned ports. The
+kernel's closed `GRANTABLE_HOST_PORTS` inventory has twenty grantable names:
+`workdir`, `channel_reply_submit`, `prompt_section`, `avatar_parent`, `context_runtime`,
 `daemon_runtime`, `email_runtime`, `plugin_catalog`, `psyche_settings`,
 `notification_state`, `notifications`, `configuration`,
 `system_runtime`, `identity`, `shutdown`, `task_card_lifecycle`,
@@ -343,10 +344,10 @@ shipped in this distribution. That is two classes today, and both are inside
 this contract's classification:
 
 - **Registry families** — the intrinsics and built-in capability rows
-  registered through `src/lingtai/tools/registry.py`. `mcp`, `avatar`,
+  registered through `src/lingtai/tools/registry.py`. `mcp`, `avatar`, `channel_reply`,
   `context`, `daemon`, `email`, `plugin`, `psyche`, `notification`, `shell`,
   `system`, `task_card`, `vision`, and `web` are first-party families
-  in scope; all thirteen are declared under the selected form. Every other
+  in scope; all fourteen are declared under the selected form. Every other
   family in this class is a future migration unit, and no family in this class
   is wrapped as an MCP plugin package today.
 - **Kernel-shipped MCP families** — the model-facing families this

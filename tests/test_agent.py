@@ -841,3 +841,270 @@ def test_base_agent_has_no_non_kernel_imports():
                         assert not _matches_non_kernel(node.module, nk), (
                             f"{source_path.name} imports from non-kernel: {node.module}"
                         )
+
+
+# Channel-reply composition and terminal notification acceptance
+
+def _real_lease_agent_kwargs(workdir, name):
+    from lingtai.adapters.workdir_lease import select_workdir_lease
+
+    return {
+        "service": make_mock_service(),
+        "agent_name": name,
+        "working_dir": workdir,
+        "workdir_lease": select_workdir_lease(workdir),
+        "agent_presence": make_test_presence_store(),
+        "snapshot_port": make_test_snapshot_port(),
+        "lifecycle_clock": make_test_lifecycle_clock(),
+        "source_revision_port": make_test_source_revision_port(),
+        "notification_store": notification_store_for(workdir),
+    }
+
+
+@pytest.mark.parametrize("failure_site", ["selector", "port", "manifest"])
+def test_agent_channel_reply_post_baseagent_failure_releases_real_workdir_lease(
+    tmp_path, monkeypatch, failure_site
+):
+    """Every post-Core failure preserves its error and permits immediate reacquisition."""
+    import lingtai.adapters.channel_reply_state_lock as lock_module
+    import lingtai.kernel.channel_reply as channel_reply_module
+
+    workdir = tmp_path / f"rollback-{failure_site}"
+    manifest_build_stages: list[str] = []
+    if failure_site == "selector":
+        expected = "selector exploded"
+
+        def fail_selector():
+            raise RuntimeError(expected)
+
+        monkeypatch.setattr(lock_module, "select_channel_reply_state_lock", fail_selector)
+    elif failure_site == "port":
+        expected = "target port exploded"
+        monkeypatch.setattr(
+            lock_module,
+            "select_channel_reply_state_lock",
+            lambda: object(),
+        )
+
+        class FailingTargetPort:
+            def __init__(self, *args, **kwargs):
+                raise RuntimeError(expected)
+
+        monkeypatch.setattr(
+            channel_reply_module,
+            "ChannelReplyTargetFileSubmitPort",
+            FailingTargetPort,
+        )
+    else:
+        expected = "final manifest exploded"
+        original_build_manifest = Agent._build_manifest
+
+        def fail_final_manifest(self):
+            stage = "final" if hasattr(self, "_preset_loader") else "base"
+            manifest_build_stages.append(stage)
+            if stage == "final":
+                raise RuntimeError(expected)
+            return original_build_manifest(self)
+
+        monkeypatch.setattr(Agent, "_build_manifest", fail_final_manifest)
+
+    with pytest.raises(RuntimeError, match=expected):
+        Agent(**_real_lease_agent_kwargs(workdir, "first"))
+
+    if failure_site == "manifest":
+        # BaseAgent writes its manifest through its non-virtual helper. Every
+        # virtual call observed here is therefore the final post-super write
+        # (plus a possible best-effort stop write), never the earlier Core write.
+        assert manifest_build_stages
+        assert set(manifest_build_stages) == {"final"}
+
+    monkeypatch.undo()
+    from lingtai.kernel.channel_reply import ClosedChannelReplySubmitPort
+
+    second = Agent(
+        **_real_lease_agent_kwargs(workdir, "second"),
+        channel_reply_submit_port=ClosedChannelReplySubmitPort(message="test closed"),
+    )
+    second.stop()
+
+
+def test_agent_channel_reply_unsupported_platform_is_closed_and_side_effect_free(
+    tmp_path, monkeypatch
+):
+    from lingtai.adapters.channel_reply_state_lock import UnsupportedChannelReplyPlatform
+    import lingtai.adapters.channel_reply_state_lock as lock_module
+    import lingtai.kernel.channel_reply as channel_reply_module
+    from lingtai.kernel.channel_reply import ClosedChannelReplySubmitPort
+
+    target_port_calls: list[tuple[tuple, dict]] = []
+
+    def unsupported_selector():
+        raise UnsupportedChannelReplyPlatform("synthetic unsupported platform")
+
+    def unexpected_target_port(*args, **kwargs):
+        target_port_calls.append((args, kwargs))
+        raise AssertionError("unsupported platform attempted target-port construction")
+
+    monkeypatch.setattr(lock_module, "select_channel_reply_state_lock", unsupported_selector)
+    monkeypatch.setattr(
+        channel_reply_module,
+        "ChannelReplyTargetFileSubmitPort",
+        unexpected_target_port,
+    )
+
+    workdir = tmp_path / "unsupported-channel-reply"
+    agent = Agent(**_real_lease_agent_kwargs(workdir, "unsupported"))
+    try:
+        assert isinstance(agent._channel_reply_submit_port, ClosedChannelReplySubmitPort)
+        assert agent._channel_reply_submit_port._message == "synthetic unsupported platform"
+        assert target_port_calls == []
+    finally:
+        agent.stop()
+
+
+def test_agent_projects_only_public_terminal_receipt_fields_and_marks_after_normal_return():
+    from types import SimpleNamespace
+    from lingtai.kernel.channel_reply import ChannelReplyReceipt
+
+    receipts = tuple(
+        ChannelReplyReceipt(
+            status=status,
+            grant_ref=f"channel-reply-v1:private-grant-{status}",
+            request_id=f"request-{status}",
+            message=f"public {status}",
+            public_ref="telegram:public" if status == "sent" else None,
+        )
+        for status in ("sent", "failed", "dead", "ambiguous")
+    )
+
+    class Port:
+        def __init__(self):
+            self.marked = []
+
+        def list_unnotified_terminal_receipts(self, *, max_inspections):
+            assert max_inspections == 4
+            return SimpleNamespace(receipts=receipts)
+
+        @staticmethod
+        def notification_idempotency_key(receipt):
+            return f"channel-reply-result-v1:opaque-{receipt.request_id}"
+
+        def mark_terminal_receipt_notified(self, receipt):
+            self.marked.append(receipt)
+            return True
+
+    port = Port()
+    agent = object.__new__(Agent)
+    agent._channel_reply_submit_port = port
+    calls = []
+    agent._enqueue_system_notification = lambda **kwargs: calls.append(kwargs)
+    agent._log = lambda *_args, **_kwargs: None
+
+    assert agent._poll_channel_reply_notifications_once(max_inspections=4) == 4
+    assert port.marked == list(receipts)
+    assert len(calls) == 4
+    for receipt, call in zip(receipts, calls):
+        key = f"channel-reply-result-v1:opaque-{receipt.request_id}"
+        assert call["source"] == "channel_reply"
+        assert call["ref_id"] == key
+        assert call["idempotency_key"] == key
+        assert call["skip_if_idempotency_key_exists"] is True
+        expected_fields = {"status", "request_id", "message"}
+        if receipt.public_ref is not None:
+            expected_fields.add("public_ref")
+        assert set(call["extra"]) == expected_fields
+        serialized = repr(call)
+        assert receipt.grant_ref not in serialized
+        assert "proof" not in serialized
+
+
+def test_agent_notification_crash_cuts_keep_marker_after_publication_only():
+    from types import SimpleNamespace
+    from lingtai.kernel.channel_reply import ChannelReplyReceipt
+
+    receipt = ChannelReplyReceipt(
+        status="sent",
+        grant_ref="channel-reply-v1:private-grant",
+        request_id="request-one",
+        message="reply delivered",
+    )
+
+    class Port:
+        def __init__(self):
+            self.mark_attempts = 0
+            self.marked = False
+            self.fail_mark_once = False
+
+        def list_unnotified_terminal_receipts(self, *, max_inspections):
+            return SimpleNamespace(receipts=() if self.marked else (receipt,))
+
+        @staticmethod
+        def notification_idempotency_key(_receipt):
+            return "channel-reply-result-v1:stable-opaque-key"
+
+        def mark_terminal_receipt_notified(self, _receipt):
+            self.mark_attempts += 1
+            if self.fail_mark_once:
+                self.fail_mark_once = False
+                raise OSError("crash after notification compare/update")
+            self.marked = True
+            return True
+
+    port = Port()
+    agent = object.__new__(Agent)
+    agent._channel_reply_submit_port = port
+    agent._log = lambda *_args, **_kwargs: None
+    enqueue_calls = []
+
+    def fail_before_publication(**kwargs):
+        enqueue_calls.append(kwargs)
+        raise OSError("notification store unavailable")
+
+    agent._enqueue_system_notification = fail_before_publication
+    assert agent._poll_channel_reply_notifications_once() == 0
+    assert port.mark_attempts == 0
+    assert port.marked is False
+
+    port.fail_mark_once = True
+    agent._enqueue_system_notification = lambda **kwargs: enqueue_calls.append(kwargs)
+    assert agent._poll_channel_reply_notifications_once() == 0
+    assert port.marked is False
+    assert agent._poll_channel_reply_notifications_once() == 1
+    assert port.marked is True
+    keys = [call["idempotency_key"] for call in enqueue_calls]
+    assert keys == ["channel-reply-result-v1:stable-opaque-key"] * 3
+
+
+def test_channel_reply_notifier_thread_lifecycle_and_closed_port_no_worker(tmp_path):
+    from types import SimpleNamespace
+    from lingtai.kernel.channel_reply import ClosedChannelReplySubmitPort
+
+    class EmptyPort:
+        @staticmethod
+        def list_unnotified_terminal_receipts(*, max_inspections):
+            return SimpleNamespace(receipts=())
+
+        @staticmethod
+        def notification_idempotency_key(_receipt):
+            return "unused"
+
+        @staticmethod
+        def mark_terminal_receipt_notified(_receipt):
+            return True
+
+    agent = object.__new__(Agent)
+    agent._channel_reply_submit_port = EmptyPort()
+    agent._channel_reply_notifier_stop = threading.Event()
+    agent._channel_reply_notifier_thread = None
+    agent.agent_name = "target"
+    agent._working_dir = tmp_path
+    agent._log = lambda *_args, **_kwargs: None
+    agent._start_channel_reply_notifier()
+    assert agent._channel_reply_notifier_thread is not None
+    assert agent._channel_reply_notifier_thread.is_alive()
+    agent._stop_channel_reply_notifier()
+    assert agent._channel_reply_notifier_thread is None
+
+    agent._channel_reply_submit_port = ClosedChannelReplySubmitPort()
+    agent._start_channel_reply_notifier()
+    assert agent._channel_reply_notifier_thread is None

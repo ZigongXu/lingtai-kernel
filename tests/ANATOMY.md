@@ -1,5 +1,10 @@
 ---
 related_files:
+  - tests/test_telegram_secret_redaction.py
+  - tests/test_telegram_agent_switching_contract_docs.py
+  - tests/test_telegram_agent_switching_ingress.py
+  - tests/test_telegram_agent_switching.py
+  - tests/test_channel_reply.py
   - tests/test_unified_instructions.py
   - ENVIRONMENT_VARIABLES.md
   - ANATOMY.md

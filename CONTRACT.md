@@ -2,6 +2,8 @@
 name: component-contract-convention
 contract_version: 4
 related_files:
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/CONTRACT.md
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - ANATOMY.md
   - BEHAVIORS.md
   - ENVIRONMENT_VARIABLES.md

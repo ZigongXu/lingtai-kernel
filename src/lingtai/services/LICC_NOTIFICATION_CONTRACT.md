@@ -4,9 +4,10 @@ description: >
   Contract for LICC/MCP notification events and their model-visible projection
   into _meta.agent_meta.notifications.attention and _meta.agent_meta.notifications.persistent.
 status: active
-contract_version: 2
-last_changed_at: "2026-08-13"
+contract_version: 3
+last_changed_at: "2026-10-05"
 related_files:
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/CONTRACT.md
   - docs/references/licc-notification-wake-runbook.md
   - src/lingtai/tools/mcp/ANATOMY.md
   - src/lingtai/services/mcp_inbox.py
@@ -35,6 +36,7 @@ related_files:
   - tests/test_feishu_notification_metadata.py
   - tests/test_whatsapp_notification_metadata.py
 review_triggers:
+  - src/lingtai/mcp_servers/telegram/agent_switching.py
   - src/lingtai/services/mcp_inbox.py
   - src/lingtai/services/mcp_licc.py
   - src/lingtai/mcp_servers/telegram/manager.py
@@ -105,9 +107,17 @@ where they share the `.notification/` filesystem protocol.
    (`src/lingtai/services/mcp_licc.py:80-145`).
 2. **LICC inbox consumer (kernel inbox -> `.notification`).** `MCPInboxPoller`
    validates/coalesces events per MCP, extracts bounded preview metadata, and
-   publishes one `.notification/mcp.<name>.json` per sweep
-   (`src/lingtai/services/mcp_inbox.py:183-219`,
-   `src/lingtai/services/mcp_inbox.py:320-391`).
+   publishes one `.notification/mcp.<name>.json` per sweep. Ordinary events keep
+   the existing retry-on-dispatch-failure behavior. A producer may explicitly opt
+   one event into `metadata.delivery_semantics == "at-most-once/v1"` only with a
+   bounded `delivery_id` and the matching canonical `as-<delivery_id>.json` name.
+   Before agent-side dispatch the consumer durably creates a private digest-bound
+   `.at-most-once/<delivery_id>.json` claim. The same exact event is then a
+   duplicate and is removed without redispatch; a conflicting or unsafe claim is
+   dead-lettered. This deliberate claim-before-dispatch cut may lose an opted-in
+   event on crash, but prevents duplicate target tasks; it does not change ordinary
+   LICC semantics or authorize replay from a missing downstream notification.
+   (`src/lingtai/services/mcp_inbox.py`).
 3. **Notification filesystem envelope.** `notifications.submit` is the standard
    envelope builder (`header`, `icon`, `priority`, `published_at`, optional
    `instructions`, and producer-owned `data`) and `notifications.publish` writes

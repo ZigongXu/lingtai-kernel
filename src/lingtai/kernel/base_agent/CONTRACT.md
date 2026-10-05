@@ -3,6 +3,7 @@ name: agent-runtime
 contract_version: 1
 root_contract: CONTRACT.md
 related_files:
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/mcp_servers/telegram/task_card/SKILL.md
   - tests/test_lifecycle_clock.py
   - src/lingtai/kernel/base_agent/ANATOMY.md

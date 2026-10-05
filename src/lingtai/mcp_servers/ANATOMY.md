@@ -1,5 +1,11 @@
 ---
 related_files:
+  - src/lingtai/mcp_servers/telegram/security.py
+  - src/lingtai/mcp_servers/telegram/channel_reply.py
+  - src/lingtai/mcp_servers/telegram/agent_switching.py
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/BEHAVIORS.md
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/ANATOMY.md
+  - src/lingtai/mcp_servers/telegram/reference/agent-switching/CONTRACT.md
   - src/lingtai/mcp_servers/telegram/_runtime.py
   - src/lingtai/services/LICC_NOTIFICATION_CONTRACT.md
   - pyproject.toml

@@ -1,5 +1,8 @@
 ---
 related_files:
+  - src/lingtai/tools/channel_reply/CONTRACT.md
+  - src/lingtai/kernel/channel_reply/_mutation_lock.py
+  - src/lingtai/kernel/channel_reply/__init__.py
   - src/lingtai/kernel/BEHAVIORS.md
   - src/lingtai/kernel/agent_readme/ANATOMY.md
   - src/lingtai/kernel/agent_readme/CONTRACT.md

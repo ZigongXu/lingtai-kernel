@@ -329,7 +329,7 @@ is in [`BEHAVIORS.md`](BEHAVIORS.md).
 
 ## Connections
 
-- `lingtai.tools.mcp`, `lingtai.tools.avatar`, `lingtai.tools.context`,
+- `lingtai.tools.mcp`, `lingtai.tools.avatar`, `lingtai.tools.channel_reply`, `lingtai.tools.context`,
   `lingtai.tools.daemon`, `lingtai.tools.email`,
   `lingtai.tools.plugin`, and `lingtai.tools.notification` import
   `lingtai.kernel.tool_plugin` (declarations depend on the shape). The kernel
@@ -415,7 +415,7 @@ is in [`BEHAVIORS.md`](BEHAVIORS.md).
 
 ## Composition
 
-`import lingtai.tools.mcp`, `import lingtai.tools.avatar`,
+`import lingtai.tools.mcp`, `import lingtai.tools.avatar`, `import lingtai.tools.channel_reply`,
 `import lingtai.tools.context`, `import lingtai.tools.daemon`,
 `import lingtai.tools.email`,
 `import lingtai.tools.plugin`, `import lingtai.tools.task_card`,
@@ -513,7 +513,7 @@ component does not own.
   reviewed contract change), build its module-level `DECLARATION`, and route
   its approved composition hook through `register_agent_tool_plugins`; do not
   infer that every official family must be a dynamic `setup()` capability.
-  The thirteen actual slices are `mcp`, `avatar`, `context`, `daemon`, `email`,
+  The fourteen actual slices are `mcp`, `avatar`, `channel_reply`, `context`, `daemon`, `email`,
   `plugin`, `psyche`, `notification`, `shell`, `system`, `task_card`,
   `vision`, and `web`;
   Notification demonstrates an always-on injected family rather than a

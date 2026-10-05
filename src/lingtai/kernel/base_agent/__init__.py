@@ -471,6 +471,7 @@ class BaseAgent:
         intrinsics: "Mapping[str, Mapping[str, Any]] | None" = None,
         mail_service: Any | None = None,
         event_journal: EventJournalPort | None = None,
+        channel_reply_submit_port: Any | None = None,
         config: AgentConfig | None = None,
         context: Any = None,
         admin: dict | None = None,
@@ -578,6 +579,9 @@ class BaseAgent:
         # teardown withdraws liveness through it. Required and explicit: there is
         # no no-op fallback and Core never constructs the concrete adapter.
         self._agent_presence = agent_presence
+        # Optional Core port: a bare BaseAgent remains closed, while the outer
+        # composition root may inject a target-local submit implementation.
+        self._channel_reply_submit_port = channel_reply_submit_port
 
         # --- Wire services ---
         # MailService: None means mail intrinsic disabled

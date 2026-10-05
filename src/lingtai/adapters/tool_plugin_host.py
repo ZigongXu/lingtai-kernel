@@ -1330,7 +1330,15 @@ def agent_host_ports(
         ports["prompt_section"] = AgentPromptSectionAdapter(
             plugin_name, agent.update_system_prompt
         )
-    if plugin_name == "avatar":
+    if plugin_name == "channel_reply":
+        from lingtai.kernel.channel_reply import ClosedChannelReplySubmitPort
+
+        ports["channel_reply_submit"] = getattr(
+            agent,
+            "_channel_reply_submit_port",
+            None,
+        ) or ClosedChannelReplySubmitPort()
+    elif plugin_name == "avatar":
         ports["avatar_parent"] = AgentAvatarParentAdapter(
             lambda: agent.agent_name or agent.working_dir.name,
             lambda: getattr(agent, "_venv_path", None),

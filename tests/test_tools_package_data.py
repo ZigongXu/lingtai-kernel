@@ -41,6 +41,7 @@ _BUILTIN_TOOLS = [
     "avatar",
     "bash",
     "context",
+    "channel_reply",
     "daemon",
     "email",
     "knowledge",

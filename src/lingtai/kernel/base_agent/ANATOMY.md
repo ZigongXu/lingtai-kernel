@@ -1,5 +1,8 @@
 ---
 related_files:
+  - src/lingtai/tools/channel_reply/ANATOMY.md
+  - src/lingtai/kernel/channel_reply/__init__.py
+  - src/lingtai/tools/channel_reply/CONTRACT.md
   - src/lingtai/mcp_servers/telegram/task_card/SKILL.md
   - tests/test_lifecycle_clock.py
   - src/lingtai/kernel/base_agent/BEHAVIORS.md
